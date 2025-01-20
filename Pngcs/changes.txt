@@ -5,6 +5,7 @@
    - Simplified namespace and project name.
    - Sorted namespaces.
    - Enabled nullability warnings and reworked several things for safer nullability. 
+   - Reworked the reader and writer to take configuration objects.
    - Reworked the Zlib implementation to focus on using SharpZipLib only.
    - Cleaned up some code.
 
