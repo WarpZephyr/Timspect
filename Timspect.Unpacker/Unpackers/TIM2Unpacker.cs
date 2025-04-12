@@ -285,7 +285,7 @@ namespace Timspect.Unpacker.Unpackers
                             {
                                 // Read PNG
                                 // TODO: Check clut and transform data if necessary
-                                pngName = pictureNode.ReadString("filename");
+                                pngName = filenameNode.InnerText;
                                 pngPath = Path.Combine(folder, pngName);
                                 if (!File.Exists(pngPath))
                                     throw new FriendlyException($"Could not find mipmap PNG: {pngPath}");

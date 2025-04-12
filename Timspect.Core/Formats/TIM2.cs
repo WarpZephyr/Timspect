@@ -94,7 +94,7 @@ namespace Timspect.Core.Formats
         /// Write a <see cref="TIM2"/> to a stream.
         /// </summary>
         /// <param name="bw">The stream writer.</param>
-        /// <exception cref="InvalidDataException">The FormatID was invalid.</exception>
+        /// <exception cref="InvalidDataException">The <see cref="FormatID"/> was invalid.</exception>
         protected override void Write(BinaryStreamWriter bw)
         {
             bw.BigEndian = false;

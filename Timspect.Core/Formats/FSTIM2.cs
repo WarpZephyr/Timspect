@@ -359,19 +359,41 @@ namespace Timspect.Core.Formats
             {
                 int totalSize = br.ReadInt32(); // TotalSize
                 int imageSize = br.ReadInt32();
-                byte mipMapCount = br.AssertByte([1, 2, 3, 4, 5, 6, 7]);
+                byte mipMapCount = br.AssertByte([0, 1, 2, 3, 4, 5, 6, 7]);
 
                 br.Position += 7; // Skip header padding
                 GsTex = new GsTexConfig(br);
+                Width = (ushort)(1 << GsTex.TextureWidth);
+                Height = (ushort)(1 << GsTex.TextureHeight);
 
+                int clutSize;
                 int headerSize = 32;
-                int clutSize = totalSize - imageSize - headerSize;
+                if (imageSize == 0)
+                {
+                    clutSize = GetClutSizeByPixelStorageMode(GsTex.PixelStorageMode, GsTex.ClutPixelStorageMode);
+                    if (totalSize == 0)
+                    {
+                        imageSize = GetImageSizeByPixelStorageMode(GsTex.PixelStorageMode, Width * Height);
+                    }
+                    else
+                    {
+                        imageSize = totalSize - headerSize - clutSize;
+                    }
+                }
+                else
+                {
+                    clutSize = totalSize - imageSize - headerSize;
+                }
+
+                if (mipMapCount == 0)
+                {
+                    mipMapCount = 1;
+                }
+
                 PictureFormat = 0;
                 ClutType = new ClutTypeConfig(GetColorTypeByPixelStorageMode(GsTex.ClutPixelStorageMode), false, GsTex.ClutStorageMode);
                 int clutColorCount = GetClutColorCountBySize(ClutType.ClutColorType, clutSize);
                 ImageColorType = GetColorTypeByPixelStorageMode(GsTex.PixelStorageMode);
-                Width = (ushort)Math.Pow(2, GsTex.TextureWidth);
-                Height = (ushort)Math.Pow(2, GsTex.TextureHeight);
 
                 MipmapTextureBasePointers = new ushort[6];
                 MipmapTextureBufferWidths = new byte[6];
@@ -831,6 +853,84 @@ namespace Timspect.Core.Formats
                     "TIM2_IDTEX8" => ColorType.IndexColor8,
                     _ => throw new NotSupportedException($"Unknown {nameof(ColorType)} name: {name}"),
                 };
+            }
+
+            public static int GetImageSizeByPixelStorageMode(PixelStorageModeType psm, int area)
+            {
+                switch (psm)
+                {
+                    case PixelStorageModeType.PSMCT32:
+                    case PixelStorageModeType.PSMZ32:
+                        return area * 4;
+                    case PixelStorageModeType.PSMCT24:
+                    case PixelStorageModeType.PSMZ24:
+                        return area * 3;
+                    case PixelStorageModeType.PSMCT16:
+                    case PixelStorageModeType.PSMCT16S:
+                    case PixelStorageModeType.PSMZ16:
+                    case PixelStorageModeType.PSMZ16S:
+                        return area * 2;
+                    case PixelStorageModeType.PSMT8:
+                    case PixelStorageModeType.PSMT8H:
+                        return area;
+                    case PixelStorageModeType.PSMT4:
+                    case PixelStorageModeType.PSMT4HH:
+                    case PixelStorageModeType.PSMT4HL:
+                        return area / 2;
+                    default:
+                        throw new NotSupportedException($"Unknown {nameof(PixelStorageModeType)}: {psm}");
+                }
+            }
+
+            public static int GetClutSizeByPixelStorageMode(PixelStorageModeType psm, PixelStorageModeType cpsm)
+            {
+                int colorCount;
+                switch (psm)
+                {
+                    case PixelStorageModeType.PSMCT32:
+                    case PixelStorageModeType.PSMZ32:
+                    case PixelStorageModeType.PSMCT24:
+                    case PixelStorageModeType.PSMZ24:
+                    case PixelStorageModeType.PSMCT16:
+                    case PixelStorageModeType.PSMCT16S:
+                    case PixelStorageModeType.PSMZ16:
+                    case PixelStorageModeType.PSMZ16S:
+                        return 0;
+                    case PixelStorageModeType.PSMT8:
+                    case PixelStorageModeType.PSMT8H:
+                        colorCount = 256;
+                        break;
+                    case PixelStorageModeType.PSMT4:
+                    case PixelStorageModeType.PSMT4HH:
+                    case PixelStorageModeType.PSMT4HL:
+                        colorCount = 16;
+                        break;
+                    default:
+                        throw new NotSupportedException($"Unknown {nameof(PixelStorageModeType)}: {psm}");
+                }
+
+                switch (cpsm)
+                {
+                    case PixelStorageModeType.PSMCT32:
+                    case PixelStorageModeType.PSMZ32:
+                        return colorCount * 4;
+                    case PixelStorageModeType.PSMCT24:
+                    case PixelStorageModeType.PSMZ24:
+                        return colorCount * 3;
+                    case PixelStorageModeType.PSMCT16:
+                    case PixelStorageModeType.PSMCT16S:
+                    case PixelStorageModeType.PSMZ16:
+                    case PixelStorageModeType.PSMZ16S:
+                        return colorCount * 2;
+                    case PixelStorageModeType.PSMT8:
+                    case PixelStorageModeType.PSMT8H:
+                    case PixelStorageModeType.PSMT4:
+                    case PixelStorageModeType.PSMT4HH:
+                    case PixelStorageModeType.PSMT4HL:
+                        throw new NotSupportedException($"Unsupported Clut {nameof(PixelStorageModeType)}: {cpsm}");
+                    default:
+                        throw new NotSupportedException($"Unknown {nameof(PixelStorageModeType)}: {cpsm}");
+                }
             }
 
             public static ColorType GetColorTypeByPixelStorageMode(PixelStorageModeType psm)
